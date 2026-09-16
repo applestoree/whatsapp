@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import {
   fetchWaAndarias,
-  subscribeToWaAndarias,
+  subscribeToWaAndariasSse,
   type WaAndariasRow,
 } from '../services/waAndarias'
 
@@ -41,36 +40,47 @@ export function ChatView() {
   useEffect(() => {
     let mounted = true
 
-    void fetchWaAndarias()
-      .then((rows) => {
+    const refresh = async () => {
+      try {
+        const rows = await fetchWaAndarias()
         if (!mounted) return
         setMessages(sortMessages(rows))
         setError(null)
-      })
-      .catch((reason: unknown) => {
+      } catch (reason: unknown) {
         if (!mounted) return
         setError(reason instanceof Error ? reason.message : 'Unable to load messages')
-      })
-      .finally(() => {
+      } finally {
         if (mounted) setLoading(false)
-      })
+      }
+    }
 
-    const unsubscribe = subscribeToWaAndarias(
-      (payload: RealtimePostgresChangesPayload<WaAndariasRow>) => {
-        if (!mounted) return
+    void refresh()
 
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          setMessages((current) => mergeRow(current, payload.new))
-        }
+    const unsubscribe = subscribeToWaAndariasSse((event) => {
+      if (!mounted) return
 
-        if (payload.eventType === 'DELETE') {
-          setMessages((current) => removeRow(current, payload.old))
-        }
-      },
-      (status) => {
-        if (mounted) setRealtimeStatus(status)
-      },
-    )
+      if (event.type === 'ready') {
+        setMessages(sortMessages(event.data.data))
+        setError(null)
+        return
+      }
+
+      if (event.type === 'insert' || event.type === 'update') {
+        setMessages((current) => mergeRow(current, event.data))
+        return
+      }
+
+      if (event.type === 'delete') {
+        setMessages((current) => removeRow(current, event.data))
+        return
+      }
+
+      if (event.type === 'error') {
+        setError(event.data.error)
+      }
+    }, (status) => {
+      if (mounted) setRealtimeStatus(status)
+    })
 
     return () => {
       mounted = false
@@ -79,7 +89,7 @@ export function ChatView() {
   }, [])
 
   const statusLabel = useMemo(
-    () => (realtimeStatus === 'SUBSCRIBED' ? 'Live' : realtimeStatus),
+    () => (realtimeStatus === 'LIVE' ? 'Live' : realtimeStatus),
     [realtimeStatus],
   )
 
