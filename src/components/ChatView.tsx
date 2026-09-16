@@ -36,7 +36,7 @@ export function ChatView() {
   const [messages, setMessages] = useState<WaAndariasRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [realtimeConnected, setRealtimeConnected] = useState(false)
+  const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING')
 
   useEffect(() => {
     let mounted = true
@@ -66,8 +66,9 @@ export function ChatView() {
         if (payload.eventType === 'DELETE') {
           setMessages((current) => removeRow(current, payload.old))
         }
-
-        setRealtimeConnected(true)
+      },
+      (status) => {
+        if (mounted) setRealtimeStatus(status)
       },
     )
 
@@ -78,8 +79,8 @@ export function ChatView() {
   }, [])
 
   const statusLabel = useMemo(
-    () => (realtimeConnected ? 'Live' : 'Connecting…'),
-    [realtimeConnected],
+    () => (realtimeStatus === 'SUBSCRIBED' ? 'Live' : realtimeStatus),
+    [realtimeStatus],
   )
 
   if (loading) {
