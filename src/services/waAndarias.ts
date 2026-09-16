@@ -40,6 +40,18 @@ export async function fetchWaAndarias(): Promise<WaAndariasRow[]> {
   return data ?? []
 }
 
+export async function sendWaMessage(message: string, chatId: string) {
+  const { data, error } = await supabase.functions.invoke('as-wa-send', {
+    body: {
+      message,
+      chat_id: chatId,
+    },
+  })
+
+  if (error) throw error
+  return data
+}
+
 export function subscribeToWaAndarias(
   onInsert: (row: WaAndariasRow) => void,
   onUpdate: (row: WaAndariasRow) => void,
