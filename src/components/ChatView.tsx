@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   fetchWaAndarias,
   subscribeToWaAndarias,
+  type WaAndariasRealtimeStatus,
   type WaAndariasRow,
 } from '../services/waAndarias'
 
@@ -16,6 +17,31 @@ function messageText(row: WaAndariasRow) {
   return 'Message'
 }
 
+function sortRows(rows: WaAndariasRow[]) {
+  return [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
+function mergeRows(current: WaAndariasRow[], incoming: WaAndariasRow[]) {
+  const byId = new Map(current.map((row) => [row.wa_message_id, row]))
+  incoming.forEach((row) => byId.set(row.wa_message_id, row))
+  return sortRows([...byId.values()])
+}
+
+function realtimeStatusText(status: WaAndariasRealtimeStatus) {
+  switch (status) {
+    case 'SUBSCRIBED':
+      return 'Realtime connected'
+    case 'CHANNEL_ERROR':
+      return 'Realtime channel error'
+    case 'TIMED_OUT':
+      return 'Realtime timed out'
+    case 'CLOSED':
+      return 'Realtime closed'
+    default:
+      return 'Connecting…'
+  }
+}
+
 export function ChatView() {
   const [rows, setRows] = useState<WaAndariasRow[]>([])
   const [status, setStatus] = useState('Connecting…')
@@ -24,36 +50,50 @@ export function ChatView() {
   useEffect(() => {
     let mounted = true
 
-    void fetchWaAndarias()
-      .then((data) => {
-        if (!mounted) return
-        setRows(data)
-        setStatus('Realtime connected')
-      })
-      .catch((fetchError: unknown) => {
-        if (!mounted) return
-        setError(fetchError instanceof Error ? fetchError.message : 'Unable to load messages')
-        setStatus('Connection error')
-      })
-
+    // Subscribe first so changes that happen during the initial fetch are not lost.
     const unsubscribe = subscribeToWaAndarias(
       (row) => {
         if (!mounted) return
-        setRows((current) => {
-          const withoutDuplicate = current.filter((item) => item.wa_message_id !== row.wa_message_id)
-          return [...withoutDuplicate, row].sort((a, b) => a.created_at.localeCompare(b.created_at))
-        })
-        setStatus('Realtime connected')
+        setRows((current) => mergeRows(current, [row]))
+        setError(null)
       },
       (row) => {
         if (!mounted) return
-        setRows((current) => current.map((item) => (item.wa_message_id === row.wa_message_id ? row : item)))
+        setRows((current) =>
+          current.map((item) => (item.wa_message_id === row.wa_message_id ? row : item)),
+        )
       },
       (row) => {
         if (!mounted) return
         setRows((current) => current.filter((item) => item.wa_message_id !== row.wa_message_id))
       },
+      (realtimeStatus, realtimeError) => {
+        if (!mounted) return
+        setStatus(realtimeStatusText(realtimeStatus))
+
+        if (realtimeStatus === 'SUBSCRIBED') {
+          setError(null)
+          return
+        }
+
+        if (realtimeStatus === 'CHANNEL_ERROR' || realtimeStatus === 'TIMED_OUT') {
+          const message = realtimeError instanceof Error ? realtimeError.message : 'Realtime connection failed'
+          setError(message)
+        }
+      },
     )
+
+    // Merge the snapshot instead of replacing state. Realtime events may arrive
+    // while this request is in flight, and replacing state would lose those events.
+    void fetchWaAndarias()
+      .then((data) => {
+        if (!mounted) return
+        setRows((current) => mergeRows(current, data))
+      })
+      .catch((fetchError: unknown) => {
+        if (!mounted) return
+        setError(fetchError instanceof Error ? fetchError.message : 'Unable to load messages')
+      })
 
     return () => {
       mounted = false
