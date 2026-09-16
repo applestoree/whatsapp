@@ -1,7 +1,7 @@
 function App() {
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto flex min-h-screen w-full max-w-[500px] flex-col">
+    <main className="h-full w-full overflow-hidden bg-white text-slate-900">
+      <div className="mx-auto flex h-full w-full max-w-[500px] flex-col">
         <header className="border-b border-slate-200 px-4 py-4">
           <h1 className="text-xl font-semibold">WhatsApp</h1>
         </header>
