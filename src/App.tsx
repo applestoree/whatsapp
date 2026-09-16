@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 type View = 'chat' | 'orders' | 'settings'
 type Overlay = 'toast' | 'bottom-sheet' | 'modal' | 'dialog' | null
 
@@ -117,7 +119,5 @@ function App() {
     </div>
   )
 }
-
-import { useState } from 'react'
 
 export default App
