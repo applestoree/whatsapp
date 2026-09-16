@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type RealtimeChannel } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://jhpbtooefyzdndstlzva.supabase.co'
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_HlbyFAF2Eyck6G84vBzaZw_TjAa39_d'
@@ -23,6 +23,13 @@ export type WaAndariasRow = {
   created_at: string
 }
 
+export type WaAndariasRealtimeStatus =
+  | 'CONNECTING'
+  | 'SUBSCRIBED'
+  | 'CHANNEL_ERROR'
+  | 'TIMED_OUT'
+  | 'CLOSED'
+
 export async function fetchWaAndarias(): Promise<WaAndariasRow[]> {
   const { data, error } = await supabase
     .from('wa_andarias')
@@ -37,8 +44,9 @@ export function subscribeToWaAndarias(
   onInsert: (row: WaAndariasRow) => void,
   onUpdate: (row: WaAndariasRow) => void,
   onDelete: (row: WaAndariasRow) => void,
+  onStatus?: (status: WaAndariasRealtimeStatus, error?: unknown) => void,
 ) {
-  const channel = supabase
+  const channel: RealtimeChannel = supabase
     .channel('wa-andarias-realtime')
     .on(
       'postgres_changes',
@@ -55,7 +63,26 @@ export function subscribeToWaAndarias(
       { event: 'DELETE', schema: 'public', table: 'wa_andarias' },
       (payload) => onDelete(payload.old as WaAndariasRow),
     )
-    .subscribe()
+    .subscribe((status, error) => {
+      switch (status) {
+        case 'SUBSCRIBED':
+          onStatus?.('SUBSCRIBED')
+          break
+        case 'CHANNEL_ERROR':
+          onStatus?.('CHANNEL_ERROR', error)
+          break
+        case 'TIMED_OUT':
+          onStatus?.('TIMED_OUT', error)
+          break
+        case 'CLOSED':
+          onStatus?.('CLOSED')
+          break
+        default:
+          onStatus?.('CONNECTING')
+      }
+    })
+
+  onStatus?.('CONNECTING')
 
   return () => {
     void supabase.removeChannel(channel)
