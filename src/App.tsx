@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ChatView } from './components/ChatView'
 
 type View = 'chat' | 'orders' | 'settings'
 type Overlay = 'toast' | 'bottom-sheet' | 'modal' | 'dialog' | null
@@ -15,15 +16,6 @@ function Header() {
         ⚙
       </button>
     </header>
-  )
-}
-
-function ChatView() {
-  return (
-    <section className="p-4" aria-label="Chat view">
-      <h2 className="text-lg font-semibold">Chat</h2>
-      <p className="mt-1 text-sm text-slate-500">Chat view ready.</p>
-    </section>
   )
 }
 
