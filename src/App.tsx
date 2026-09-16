@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ChatView } from './components/ChatView'
 
 type View = 'chat' | 'orders' | 'settings'
 type Overlay = 'toast' | 'bottom-sheet' | 'modal' | 'dialog' | null
 
-function Header() {
+function Header({ hidden }: { hidden: boolean }) {
+  if (hidden) return null
+
   return (
     <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-4">
       <div className="text-xl font-semibold">AppleStoree</div>
@@ -46,10 +48,10 @@ function SettingsView() {
   )
 }
 
-function Content({ view }: { view: View }) {
+function Content({ view, onMessageOpen }: { view: View; onMessageOpen: (open: boolean) => void }) {
   return (
     <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      {view === 'chat' && <ChatView />}
+      {view === 'chat' && <ChatView onMessageOpen={onMessageOpen} />}
       {view === 'orders' && <OrdersView />}
       {view === 'settings' && <SettingsView />}
     </main>
@@ -100,13 +102,18 @@ function MobileOverlay({ type }: { type: Overlay }) {
 
 function App() {
   const [view, setView] = useState<View>('chat')
+  const [messageOpen, setMessageOpen] = useState(false)
   const [overlay] = useState<Overlay>(null)
+
+  const handleMessageOpen = useCallback((open: boolean) => {
+    setMessageOpen(open)
+  }, [])
 
   return (
     <div className="relative mx-auto flex h-full w-full max-w-[500px] flex-col overflow-hidden bg-white text-slate-900">
-      <Header />
-      <Content view={view} />
-      <BottomNav view={view} onChange={setView} />
+      <Header hidden={messageOpen} />
+      <Content view={view} onMessageOpen={handleMessageOpen} />
+      {!messageOpen && <BottomNav view={view} onChange={setView} />}
       <MobileOverlay type={overlay} />
     </div>
   )
