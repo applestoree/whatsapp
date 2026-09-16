@@ -1,4 +1,4 @@
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import type { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
 export const WA_ANDARIAS_ENDPOINT =
@@ -36,6 +36,7 @@ export async function fetchWaAndarias(): Promise<WaAndariasRow[]> {
 
 export function subscribeToWaAndarias(
   onChange: (payload: RealtimePostgresChangesPayload<WaAndariasRow>) => void,
+  onStatus?: (status: RealtimeChannel['state']) => void,
 ) {
   const channel = supabase
     .channel('wa-andarias-realtime')
@@ -48,7 +49,7 @@ export function subscribeToWaAndarias(
       },
       onChange,
     )
-    .subscribe()
+    .subscribe((status) => onStatus?.(status))
 
   return () => {
     void supabase.removeChannel(channel)
