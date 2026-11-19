@@ -22,8 +22,19 @@ Aplikasi ini berfokus pada pengalaman antarmuka WhatsApp di perangkat mobile.
 
 - **Target perangkat:** smartphone / mobile browser.
 - **Layout:** mobile-first, satu kolom, dengan navigasi dan area percakapan yang dirancang untuk layar kecil.
+- **Zoom:** zoom pengguna harus dinonaktifkan sepenuhnya pada UI aplikasi, termasuk pinch-to-zoom dan double-tap zoom pada perangkat mobile serta browser zoom melalui gesture/shortcut sejauh dapat dikendalikan oleh browser. Gunakan konfigurasi viewport `user-scalable=no`, `maximum-scale=1`, dan `minimum-scale=1`, serta pencegahan gesture zoom yang relevan.
 - **Desktop:** bukan target desain; tidak disediakan layout desktop atau desktop-responsive khusus.
 - **PWA:** dapat dipasang sebagai aplikasi web pada perangkat yang mendukung fitur PWA.
+
+### Kebijakan Zoom
+
+Aplikasi tidak menyediakan fitur zoom. Implementasi frontend harus:
+
+- Mengatur viewport meta tag dengan `width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no`.
+- Mencegah gesture pinch dan double-tap yang memicu pembesaran pada browser mobile, dengan event handling yang sesuai dan tanpa mengganggu scroll normal.
+- Mencegah browser zoom melalui kombinasi `Ctrl/Cmd +` / `Ctrl/Cmd -` dan `Ctrl/Cmd + scroll` sejauh mekanisme browser mengizinkan.
+
+**Catatan platform:** browser atau sistem operasi tertentu dapat mengabaikan pembatasan zoom demi pengaturan aksesibilitas pengguna. Karena itu, aplikasi menerapkan pemblokiran semaksimal yang diizinkan platform, tetapi tidak dapat menjamin override terhadap pengaturan aksesibilitas/browser.
 
 ## Gambaran Arsitektur
 
