@@ -44,6 +44,39 @@ Pencegahan gesture harus diterapkan dengan event handling yang sesuai, tanpa men
 
 **Batasan platform:** browser atau sistem operasi dapat mengabaikan pembatasan zoom demi aksesibilitas. Karena itu, aplikasi menargetkan pemblokiran semaksimal yang diizinkan platform, tetapi tidak dapat menjamin override terhadap pengaturan aksesibilitas/browser.
 
+## Struktur Komponen Frontend
+
+Struktur komponen frontend yang telah disetujui:
+
+```text
+App
+├── AppShell
+│   ├── Header
+│   ├── AppContent
+│   │   ├── ChatsPage
+│   │   │   └── ChatList
+│   │   │       └── ChatListItem
+│   │   └── SettingsPage
+│   └── BottomNavigation
+│
+├── ChatDetailPage (Standalone)
+│   ├── ChatHeader
+│   ├── MessageList
+│   │   ├── MessageBubble
+│   │   ├── MessageStatus
+│   │   └── MessageMedia
+│   └── MessageInput
+│
+└── Overlay
+```
+
+- `AppShell` menjadi kerangka halaman utama yang memuat `Header`, `AppContent`, dan `BottomNavigation`.
+- `AppContent` menjadi area konten untuk `ChatsPage` dan `SettingsPage`.
+- `ChatDetailPage` merupakan halaman standalone, berada langsung di bawah `App` dan tidak berada di dalam `AppShell`.
+- `Overlay` merupakan komponen tingkat aplikasi yang berada langsung di bawah `App`.
+
+Nama dan hierarki komponen mengikuti struktur yang disetujui. Detail implementasi internal masing-masing komponen belum ditetapkan di bagian ini.
+
 ## Gambaran Arsitektur
 
 ```text
