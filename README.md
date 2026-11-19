@@ -2,7 +2,7 @@
 
 Frontend **WhatsApp UI (mobile only)** untuk mengelola percakapan WhatsApp Business. Antarmuka dibangun menggunakan React, Vite, TypeScript, dan vite-plugin-pwa dengan pendekatan khusus perangkat mobile. Supabase digunakan sebagai backend, Meta WhatsApp Business Platform (Cloud API) sebagai layanan messaging, dan GitHub Pages sebagai hosting frontend statis.
 
-> **Status:** Dokumentasi awal proyek. Fitur dan integrasi akan diimplementasikan bertahap; README ini tidak menyatakan bahwa seluruh fitur sudah tersedia.
+> **Status proyek:** Dokumentasi awal. Repository saat ini baru berisi README.md; source code aplikasi, `package.json`, konfigurasi PWA, dan workflow deployment belum tersedia. Perintah dan konfigurasi di bawah merupakan panduan implementasi, bukan bukti bahwa aplikasi sudah dapat dijalankan atau telah dipublikasikan.
 
 ## Teknologi
 
@@ -28,42 +28,49 @@ Aplikasi ini berfokus pada pengalaman antarmuka WhatsApp di perangkat mobile.
 
 ### Kebijakan Zoom
 
-Aplikasi tidak menyediakan fitur zoom. Implementasi frontend harus:
+Persyaratan UI: aplikasi tidak menyediakan fitur zoom. Implementasi frontend harus berupaya mencegah:
 
-- Mengatur viewport meta tag dengan `width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no`.
-- Mencegah gesture pinch dan double-tap yang memicu pembesaran pada browser mobile, dengan event handling yang sesuai dan tanpa mengganggu scroll normal.
-- Mencegah browser zoom melalui kombinasi `Ctrl/Cmd +` / `Ctrl/Cmd -` dan `Ctrl/Cmd + scroll` sejauh mekanisme browser mengizinkan.
+- Pinch-to-zoom dan double-tap zoom pada browser mobile.
+- Browser zoom melalui `Ctrl/Cmd +` dan `Ctrl/Cmd -`.
+- Zoom melalui `Ctrl/Cmd + scroll` sejauh dapat dikendalikan oleh browser.
 
-**Catatan platform:** browser atau sistem operasi tertentu dapat mengabaikan pembatasan zoom demi pengaturan aksesibilitas pengguna. Karena itu, aplikasi menerapkan pemblokiran semaksimal yang diizinkan platform, tetapi tidak dapat menjamin override terhadap pengaturan aksesibilitas/browser.
+Viewport yang ditargetkan:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+```
+
+Pencegahan gesture harus diterapkan dengan event handling yang sesuai, tanpa mengganggu scroll normal dan interaksi kontrol. Ketentuan ini belum diimplementasikan atau diuji karena source code frontend belum tersedia.
+
+**Batasan platform:** browser atau sistem operasi dapat mengabaikan pembatasan zoom demi aksesibilitas. Karena itu, aplikasi menargetkan pemblokiran semaksimal yang diizinkan platform, tetapi tidak dapat menjamin override terhadap pengaturan aksesibilitas/browser.
 
 ## Gambaran Arsitektur
 
 ```text
-Pengguna
-   |
-   v
-React + Vite + TypeScript
-(PWA - GitHub Pages)
-   |
-   | HTTPS
-   v
-Supabase
-   |-- PostgreSQL
-   |-- Edge Functions
-   |-- Realtime
-   |
-   | HTTPS / Webhook
-   v
-Meta WhatsApp Business Platform
-(WhatsApp Cloud API)
+                    Pengiriman pesan
+Frontend WhatsApp UI ----------------------+
+        |                                  |
+        | HTTPS                            v
+        v                         Meta WhatsApp Cloud API
+Supabase Edge Functions <-----------------+
+        ^                       Webhook pesan/status
+        |
+        | Database + Realtime
+        v
+Supabase PostgreSQL
+        |
+        +-------------------------------> Frontend WhatsApp UI
+
+Frontend di-host sebagai static site melalui GitHub Pages.
 ```
 
 ### Tanggung jawab setiap bagian
 
 - **Frontend WhatsApp UI (mobile only):** menampilkan antarmuka percakapan untuk perangkat mobile dan berkomunikasi dengan Supabase.
 - **Supabase Database:** menyimpan data aplikasi seperti percakapan, pesan, kontak, dan status pesan sesuai skema yang nantinya ditetapkan.
-- **Supabase Edge Functions:** menjadi lapisan server untuk proses yang membutuhkan kredensial rahasia, integrasi WhatsApp Cloud API, serta penerimaan dan validasi webhook Meta.
-- **Supabase Realtime:** menyampaikan perubahan data ke frontend secara real-time.
+- **Supabase Edge Functions:** menjadi lapisan server untuk proses yang membutuhkan kredensial rahasia, mengirim permintaan ke WhatsApp Cloud API, serta menerima dan memvalidasi webhook Meta.
+- **Meta WhatsApp Cloud API:** menerima permintaan pengiriman dari Edge Functions dan mengirim webhook berisi pesan masuk atau pembaruan status ke endpoint webhook Supabase.
+- **Supabase Realtime:** menyampaikan perubahan data yang telah disimpan di database ke frontend secara real-time.
 - **Meta WhatsApp Cloud API:** menangani pengiriman dan penerimaan pesan WhatsApp Business.
 - **GitHub Pages:** menyajikan hasil build frontend. GitHub Pages bukan tempat menjalankan API server atau webhook.
 
@@ -71,19 +78,36 @@ Meta WhatsApp Business Platform
 
 ## Ruang Lingkup Fitur
 
-Ruang lingkup awal aplikasi mencakup:
+Ruang lingkup fitur yang disetujui (Requirement V7) dikelompokkan sebagai berikut:
 
-- Daftar percakapan dengan pencarian.
-- Filter percakapan: All dan Unread.
-- Tampilan kronologi pesan.
-- Dukungan konten pesan teks dan media.
-- Jenis media: Image, Video, Audio, dan Document.
-- Informasi status pesan.
-- Kontak: View, Search, dan pengelolaan manual Add/Edit.
-- Pengelolaan data dengan tampilan List dan Detail serta aksi Create, Edit, dan Delete sesuai kebutuhan modul.
-- Informasi akun WhatsApp Business.
+### Conversation
 
-Ketersediaan aksi dan jenis pesan tetap mengikuti dukungan serta izin Meta WhatsApp Business Platform.
+- Menampilkan daftar percakapan.
+- Search percakapan.
+- Filter All dan Unread.
+- Menampilkan kronologi pesan.
+
+### Message
+
+- Mendukung pesan Text.
+- Mendukung media Image, Video, Audio, dan Document.
+- Menampilkan informasi status pesan.
+
+### Contact
+
+- View dan Search kontak.
+- Add dan Edit kontak secara manual.
+
+### Data Management
+
+- Tampilan List dan Detail.
+- Aksi Create, Edit, dan Delete sesuai modul serta sumber data yang ditetapkan.
+
+### Account
+
+- Menampilkan informasi akun WhatsApp Business.
+
+Ketersediaan aksi dan jenis pesan tetap mengikuti dukungan, izin, dan kebijakan Meta WhatsApp Business Platform. Daftar ini mendokumentasikan ruang lingkup yang disetujui, bukan menyatakan bahwa fitur telah diimplementasikan.
 
 ## Persyaratan
 
@@ -136,7 +160,7 @@ Sebelum menjalankan proyek, siapkan:
    npm run preview
    ```
 
-> Perintah di atas merupakan alur standar proyek Vite. Pastikan script yang digunakan tersedia pada `package.json` proyek.
+> **Status:** langkah ini belum dapat dijalankan pada repository saat ini karena `package.json` dan source code belum tersedia. Perintah tersebut merupakan alur standar yang akan digunakan setelah aplikasi diinisialisasi.
 
 ## Konfigurasi Supabase
 
@@ -161,7 +185,9 @@ Target URL GitHub Pages:
 
 **https://applestoree.github.io/whatsapp/**
 
-Karena aplikasi dipublikasikan di subpath repository `/whatsapp/`, konfigurasi Vite perlu menggunakan base path berikut:
+URL di atas adalah **target URL**, bukan konfirmasi bahwa website sudah dipublikasikan. Repository saat ini belum memiliki source code atau workflow deployment.
+
+Karena target aplikasi berada di subpath repository `/whatsapp/`, konfigurasi Vite saat implementasi perlu menggunakan base path berikut:
 
 ```ts
 import { defineConfig } from 'vite'
@@ -179,17 +205,26 @@ export default defineConfig({
 })
 ```
 
-Sesuaikan konfigurasi plugin dengan kebutuhan aplikasi ketika konfigurasi Vite dibuat.
+Sesuaikan konfigurasi plugin dengan kebutuhan aplikasi ketika konfigurasi Vite dibuat. Konfigurasi ini hanya contoh dan belum ada di repository.
 
 ### Langkah publikasi
 
-1. Push source code ke branch `main`.
-2. Tambahkan GitHub Actions workflow untuk install dependencies, menjalankan build, dan mengunggah folder `dist` ke GitHub Pages.
+1. Implementasikan aplikasi dan pastikan `npm run build` menghasilkan folder `dist`.
+2. Tambahkan GitHub Actions workflow untuk install dependencies, menjalankan build, dan mengunggah folder `dist` sebagai artifact GitHub Pages.
 3. Buka repository **Settings → Pages**.
 4. Pada **Build and deployment → Source**, pilih **GitHub Actions**.
 5. Jalankan workflow dan periksa hasil deployment pada tab **Actions**.
 
-Jika menggunakan React Router dengan browser history, siapkan strategi fallback untuk route selain root karena GitHub Pages merupakan static hosting dan tidak menyediakan rewrite server-side secara default.
+Workflow belum tersedia pada repository saat ini.
+
+### PWA dan routing pada subpath
+
+- Pastikan Vite `base` menggunakan `/whatsapp/`.
+- Konfigurasikan manifest PWA dengan `start_url` dan `scope` yang sesuai dengan subpath aplikasi.
+- Pastikan asset manifest, icon, dan service worker menggunakan path yang benar.
+- Tentukan strategi caching service worker dan uji pembaruan versi aplikasi.
+- Jika menggunakan React Router dengan browser history, siapkan fallback route yang kompatibel dengan GitHub Pages. Alternatifnya, gunakan routing berbasis hash agar navigasi tidak memerlukan rewrite server-side.
+- Uji direct navigation, refresh halaman pada nested route, instalasi PWA, dan pembaruan service worker setelah deployment.
 
 GitHub Pages menggunakan HTTPS, yang diperlukan untuk fitur PWA seperti service worker. Supabase tetap harus di-host dan dikonfigurasi secara terpisah.
 
