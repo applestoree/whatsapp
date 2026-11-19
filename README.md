@@ -1,6 +1,6 @@
 # WhatsApp
 
-Aplikasi web WhatsApp Business untuk mengelola percakapan pelanggan melalui **Meta WhatsApp Business Platform (Cloud API)**. Frontend dibangun menggunakan React, Vite, TypeScript, dan vite-plugin-pwa. Supabase digunakan sebagai backend, sedangkan GitHub Pages menjadi hosting untuk frontend statis.
+Frontend **WhatsApp UI (mobile only)** untuk mengelola percakapan WhatsApp Business. Antarmuka dibangun menggunakan React, Vite, TypeScript, dan vite-plugin-pwa dengan pendekatan khusus perangkat mobile. Supabase digunakan sebagai backend, Meta WhatsApp Business Platform (Cloud API) sebagai layanan messaging, dan GitHub Pages sebagai hosting frontend statis.
 
 > **Status:** Dokumentasi awal proyek. Fitur dan integrasi akan diimplementasikan bertahap; README ini tidak menyatakan bahwa seluruh fitur sudah tersedia.
 
@@ -8,13 +8,22 @@ Aplikasi web WhatsApp Business untuk mengelola percakapan pelanggan melalui **Me
 
 | Teknologi | Peran |
 |---|---|
-| React | Antarmuka pengguna |
+| React | Frontend WhatsApp UI khusus mobile |
 | Vite | Development server dan build tool |
 | TypeScript | Bahasa pemrograman dan type safety |
 | vite-plugin-pwa | PWA, web app manifest, dan service worker |
 | Supabase | Backend: PostgreSQL, Edge Functions, dan Realtime |
 | Meta WhatsApp Business Platform | API resmi untuk komunikasi WhatsApp Business |
 | GitHub Pages | Hosting frontend statis |
+
+## Frontend WhatsApp UI — Mobile Only
+
+Aplikasi ini berfokus pada pengalaman antarmuka WhatsApp di perangkat mobile.
+
+- **Target perangkat:** smartphone / mobile browser.
+- **Layout:** mobile-first, satu kolom, dengan navigasi dan area percakapan yang dirancang untuk layar kecil.
+- **Desktop:** bukan target desain; tidak disediakan layout desktop atau desktop-responsive khusus.
+- **PWA:** dapat dipasang sebagai aplikasi web pada perangkat yang mendukung fitur PWA.
 
 ## Gambaran Arsitektur
 
@@ -40,7 +49,7 @@ Meta WhatsApp Business Platform
 
 ### Tanggung jawab setiap bagian
 
-- **Frontend:** menampilkan antarmuka aplikasi dan berkomunikasi dengan Supabase.
+- **Frontend WhatsApp UI (mobile only):** menampilkan antarmuka percakapan untuk perangkat mobile dan berkomunikasi dengan Supabase.
 - **Supabase Database:** menyimpan data aplikasi seperti percakapan, pesan, kontak, dan status pesan sesuai skema yang nantinya ditetapkan.
 - **Supabase Edge Functions:** menjadi lapisan server untuk proses yang membutuhkan kredensial rahasia, integrasi WhatsApp Cloud API, serta penerimaan dan validasi webhook Meta.
 - **Supabase Realtime:** menyampaikan perubahan data ke frontend secara real-time.
