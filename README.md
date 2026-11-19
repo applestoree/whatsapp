@@ -42,6 +42,12 @@ Viewport yang ditargetkan:
 
 Pencegahan gesture harus diterapkan dengan event handling yang sesuai, tanpa mengganggu scroll normal dan interaksi kontrol. Ketentuan ini belum diimplementasikan atau diuji karena source code frontend belum tersedia.
 
+Checklist pengujian setelah implementasi:
+- Uji pinch-to-zoom dan double-tap zoom pada browser mobile target.
+- Uji shortcut zoom dan `Ctrl/Cmd + scroll` pada browser desktop untuk memastikan perilakunya sesuai batasan platform.
+- Pastikan scroll normal, input, pemilihan teks yang diperlukan, dan interaksi kontrol tetap berfungsi.
+- Catat browser dan perangkat yang diuji serta perilaku yang tidak dapat diblokir oleh platform.
+
 **Batasan platform:** browser atau sistem operasi dapat mengabaikan pembatasan zoom demi aksesibilitas. Karena itu, aplikasi menargetkan pemblokiran semaksimal yang diizinkan platform, tetapi tidak dapat menjamin override terhadap pengaturan aksesibilitas/browser.
 
 ## Struktur Komponen Frontend
@@ -73,28 +79,61 @@ App
 - `AppShell` menjadi kerangka halaman utama yang memuat `Header`, `AppContent`, dan `BottomNavigation`.
 - `AppContent` menjadi area konten untuk `ChatsPage` dan `SettingsPage`.
 - `ChatDetailPage` merupakan halaman standalone, berada langsung di bawah `App` dan tidak berada di dalam `AppShell`.
-- `Overlay` merupakan komponen tingkat aplikasi yang berada langsung di bawah `App`.
+- Perpindahan antara `AppShell` dan `ChatDetailPage` memerlukan mekanisme navigasi/routing yang akan ditetapkan pada tahap implementasi. README ini belum menetapkan metode routing.
+- `Overlay` merupakan komponen tingkat aplikasi yang berada langsung di bawah `App`. Jenis overlay, pemicu, dan perilaku detailnya belum ditetapkan.
 
 Nama dan hierarki komponen mengikuti struktur yang disetujui. Detail implementasi internal masing-masing komponen belum ditetapkan di bagian ini.
 
 ## Gambaran Arsitektur
 
+Alur utama pengiriman dan penerimaan pesan:
+
 ```text
-                    Pengiriman pesan
-Frontend WhatsApp UI ----------------------+
-        |                                  |
-        | HTTPS                            v
-        v                         Meta WhatsApp Cloud API
-Supabase Edge Functions <-----------------+
-        ^                       Webhook pesan/status
+Pengiriman pesan:
+Frontend WhatsApp UI
         |
-        | Database + Realtime
+        | HTTPS request
+        v
+Supabase Edge Functions
+        |
+        | WhatsApp Cloud API request
+        v
+Meta WhatsApp Cloud API
+        |
+        | Hasil pengiriman / message ID
+        v
+Supabase Edge Functions
+        |
+        | Simpan atau perbarui data
         v
 Supabase PostgreSQL
         |
-        +-------------------------------> Frontend WhatsApp UI
+        | Database change
+        v
+Supabase Realtime
+        |
+        v
+Frontend WhatsApp UI
 
-Frontend di-host sebagai static site melalui GitHub Pages.
+Pesan masuk dan status pesan:
+Meta WhatsApp Cloud API
+        |
+        | HTTPS Webhook
+        v
+Supabase Edge Functions
+        |
+        | Validasi webhook dan proses event
+        v
+Supabase PostgreSQL
+        |
+        | Database change
+        v
+Supabase Realtime
+        |
+        v
+Frontend WhatsApp UI
+
+Frontend static site di-host melalui GitHub Pages.
 ```
 
 ### Tanggung jawab setiap bagian
@@ -102,9 +141,8 @@ Frontend di-host sebagai static site melalui GitHub Pages.
 - **Frontend WhatsApp UI (mobile only):** menampilkan antarmuka percakapan untuk perangkat mobile dan berkomunikasi dengan Supabase.
 - **Supabase Database:** menyimpan data aplikasi seperti percakapan, pesan, kontak, dan status pesan sesuai skema yang nantinya ditetapkan.
 - **Supabase Edge Functions:** menjadi lapisan server untuk proses yang membutuhkan kredensial rahasia, mengirim permintaan ke WhatsApp Cloud API, serta menerima dan memvalidasi webhook Meta.
-- **Meta WhatsApp Cloud API:** menerima permintaan pengiriman dari Edge Functions dan mengirim webhook berisi pesan masuk atau pembaruan status ke endpoint webhook Supabase.
+- **Meta WhatsApp Cloud API:** menangani pengiriman dan penerimaan pesan WhatsApp Business. Meta mengirim webhook pesan masuk dan pembaruan status ke Supabase Edge Functions.
 - **Supabase Realtime:** menyampaikan perubahan data yang telah disimpan di database ke frontend secara real-time.
-- **Meta WhatsApp Cloud API:** menangani pengiriman dan penerimaan pesan WhatsApp Business.
 - **GitHub Pages:** menyajikan hasil build frontend. GitHub Pages bukan tempat menjalankan API server atau webhook.
 
 **Keamanan:** jangan menyimpan Meta access token, Supabase service-role key, atau kredensial rahasia lainnya di kode frontend maupun variabel environment berawalan `VITE_`. Simpan rahasia backend melalui Supabase Edge Function Secrets.
@@ -135,6 +173,7 @@ Ruang lingkup fitur yang disetujui (Requirement V7) dikelompokkan sebagai beriku
 
 - Tampilan List dan Detail.
 - Aksi Create, Edit, dan Delete sesuai modul serta sumber data yang ditetapkan.
+- Pemetaan aksi terhadap entitas atau modul tertentu belum ditetapkan dalam requirement ini; jangan mengasumsikan semua entitas mendukung seluruh aksi.
 
 ### Account
 
@@ -173,7 +212,9 @@ Sebelum menjalankan proyek, siapkan:
    VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
    ```
 
-   Ganti nilai contoh dengan URL dan anon/publishable key dari project Supabase. Nilai dengan prefix `VITE_` akan tersedia di bundle browser; jangan masukkan secret key atau Meta access token ke sini.
+   Ganti nilai contoh dengan URL dan anon/publishable key dari project Supabase. Nilai dengan prefix `VITE_` akan tersedia di bundle browser dan harus dianggap publik. Supabase anon/publishable key hanya boleh digunakan bersama kebijakan keamanan database seperti Row Level Security (RLS) yang dikonfigurasi dengan benar.
+
+   **Jangan pernah menaruh** Supabase service-role/secret key, Meta access token, App Secret, webhook secret, atau kredensial backend lain di frontend, file yang dikirim ke browser, maupun variabel berawalan `VITE_`. Simpan rahasia tersebut sebagai Supabase Edge Function Secrets dan akses hanya dari lingkungan server.
 
 4. Jalankan development server:
 
@@ -253,11 +294,21 @@ Workflow belum tersedia pada repository saat ini.
 ### PWA dan routing pada subpath
 
 - Pastikan Vite `base` menggunakan `/whatsapp/`.
-- Konfigurasikan manifest PWA dengan `start_url` dan `scope` yang sesuai dengan subpath aplikasi.
-- Pastikan asset manifest, icon, dan service worker menggunakan path yang benar.
+- Konfigurasikan manifest PWA dengan `start_url` dan `scope` yang sesuai dengan subpath aplikasi. Sebagai contoh target subpath, nilai keduanya perlu berada di bawah `/whatsapp/`; nilai final ditetapkan saat konfigurasi aplikasi dibuat.
+- Pastikan asset manifest, icon, dan service worker menggunakan path yang benar dan tidak mengarah ke root domain.
 - Tentukan strategi caching service worker dan uji pembaruan versi aplikasi.
 - Jika menggunakan React Router dengan browser history, siapkan fallback route yang kompatibel dengan GitHub Pages. Alternatifnya, gunakan routing berbasis hash agar navigasi tidak memerlukan rewrite server-side.
 - Uji direct navigation, refresh halaman pada nested route, instalasi PWA, dan pembaruan service worker setelah deployment.
+- Verifikasi manifest, `start_url`, `scope`, icon, service worker registration, offline behavior yang memang direncanakan, serta update aplikasi pada perangkat target.
+
+Contoh nilai path untuk manifest (bukan file konfigurasi final):
+
+```json
+{
+  "start_url": "/whatsapp/",
+  "scope": "/whatsapp/"
+}
+```
 
 GitHub Pages menggunakan HTTPS, yang diperlukan untuk fitur PWA seperti service worker. Supabase tetap harus di-host dan dikonfigurasi secara terpisah.
 
