@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { NavLink, Outlet, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Bell, CheckCheck, ChevronRight, CircleHelp, FileText,
   MessageCircle, MoreHorizontal, Plus, Search, Settings, Users, Wifi, X
@@ -10,8 +10,13 @@ type Tab = 'all' | 'unread'
 export default function App() {
   return <div className="app-frame">
     <Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<ChatsPage />} />
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="templates" element={<TemplatesPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
       <Route path="/chat/:chatId" element={<ChatDetailPage />} />
-      <Route path="*" element={<AppShell />} />
     </Routes>
     <Overlay />
   </div>
@@ -20,8 +25,6 @@ export default function App() {
 function Overlay() { return null }
 
 function AppShell() {
-  const [query, setQuery] = useState('')
-  const [tab, setTab] = useState<Tab>('all')
   return <>
     <header className="topbar">
       <div className="topbar-brand">
@@ -30,14 +33,7 @@ function AppShell() {
       </div>
       <button className="icon-button" aria-label="Notifications" type="button"><Bell size={20} /><span className="notification-dot" /></button>
     </header>
-    <main className="page-content">
-      <Routes>
-        <Route path="/" element={<ChatsPage query={query} setQuery={setQuery} tab={tab} setTab={setTab} />} />
-        <Route path="/contacts" element={<ContactsPage />} />
-        <Route path="/templates" element={<TemplatesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
-    </main>
+    <main className="page-content"><Outlet /></main>
     <nav className="bottom-nav" aria-label="Main navigation">
       <NavItem to="/" label="Chats" icon={<MessageCircle size={21} />} />
       <NavItem to="/contacts" label="Contacts" icon={<Users size={21} />} />
@@ -55,7 +51,9 @@ function PageHeading({ title, description, action }: { title: string; descriptio
   return <div className="page-heading"><div><h1>{title}</h1><p>{description}</p></div>{action}</div>
 }
 
-function ChatsPage({ query, setQuery, tab, setTab }: { query: string; setQuery: (value: string) => void; tab: Tab; setTab: (value: Tab) => void }) {
+function ChatsPage() {
+  const [query, setQuery] = useState('')
+  const [tab, setTab] = useState<Tab>('all')
   return <section>
     <PageHeading title="Chats" description="Your customer conversations" />
     <label className="search-field"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search conversations" />{query && <button type="button" aria-label="Clear search" onClick={() => setQuery('')}><X size={16} /></button>}</label>
