@@ -40,7 +40,7 @@ Viewport yang ditargetkan:
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
 ```
 
-Pencegahan gesture harus diterapkan dengan event handling yang sesuai, tanpa mengganggu scroll normal dan interaksi kontrol. Ketentuan ini belum diimplementasikan atau diuji karena source code frontend belum tersedia.
+Pencegahan gesture harus diterapkan dengan event handling yang sesuai, tanpa mengganggu scroll normal dan interaksi kontrol. Viewport zoom restriction sudah ditambahkan pada `index.html`. Pencegahan gesture tambahan dan pengujian lintas browser/perangkat masih perlu dilakukan.
 
 Checklist pengujian setelah implementasi:
 - Uji pinch-to-zoom dan double-tap zoom pada browser mobile target.
@@ -289,7 +289,7 @@ Sesuaikan konfigurasi plugin dengan kebutuhan aplikasi ketika konfigurasi Vite d
 4. Pada **Build and deployment → Source**, pilih **GitHub Actions**.
 5. Jalankan workflow dan periksa hasil deployment pada tab **Actions**.
 
-Workflow belum tersedia pada repository saat ini.
+Workflow GitHub Actions sudah ditambahkan di `.github/workflows/deploy.yml`. Status build/deployment perlu diperiksa pada tab **Actions** setelah workflow berjalan.
 
 ### PWA dan routing pada subpath
 
